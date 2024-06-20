@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"sync"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestCache(t *testing.T) {
@@ -14,49 +12,103 @@ func TestCache(t *testing.T) {
 		c := NewCache(10)
 
 		_, ok := c.Get("aaa")
-		require.False(t, ok)
+		requireFalse(t, ok)
 
 		_, ok = c.Get("bbb")
-		require.False(t, ok)
+		requireFalse(t, ok)
 	})
 
 	t.Run("simple", func(t *testing.T) {
 		c := NewCache(5)
 
 		wasInCache := c.Set("aaa", 100)
-		require.False(t, wasInCache)
+		requireFalse(t, wasInCache)
 
 		wasInCache = c.Set("bbb", 200)
-		require.False(t, wasInCache)
+		requireFalse(t, wasInCache)
 
 		val, ok := c.Get("aaa")
-		require.True(t, ok)
-		require.Equal(t, 100, val)
+		requireTrue(t, ok)
+		requireEqual(t, 100, val)
 
 		val, ok = c.Get("bbb")
-		require.True(t, ok)
-		require.Equal(t, 200, val)
+		requireTrue(t, ok)
+		requireEqual(t, 200, val)
 
 		wasInCache = c.Set("aaa", 300)
-		require.True(t, wasInCache)
+		requireTrue(t, wasInCache)
 
 		val, ok = c.Get("aaa")
-		require.True(t, ok)
-		require.Equal(t, 300, val)
+		requireTrue(t, ok)
+		requireEqual(t, 300, val)
 
 		val, ok = c.Get("ccc")
-		require.False(t, ok)
-		require.Nil(t, val)
+		requireFalse(t, ok)
+		requireNil(t, val)
+	})
+	t.Run("evict oldest when full", func(t *testing.T) {
+		c := NewCache(2)
+
+		wasInCache := c.Set("a", 1)
+		requireFalse(t, wasInCache)
+
+		wasInCache = c.Set("b", 2)
+		requireFalse(t, wasInCache)
+
+		wasInCache = c.Set("c", 3)
+		requireFalse(t, wasInCache)
+
+		val, ok := c.Get("a")
+		requireFalse(t, ok)
+		requireNil(t, val)
+
+		val, ok = c.Get("b")
+		requireTrue(t, ok)
+		requireEqual(t, 2, val)
+
+		val, ok = c.Get("c")
+		requireTrue(t, ok)
+		requireEqual(t, 3, val)
 	})
 
-	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+	t.Run("evict least recently used", func(t *testing.T) {
+		c := NewCache(3)
+
+		wasInCache := c.Set("a", 1)
+		requireFalse(t, wasInCache)
+
+		wasInCache = c.Set("b", 2)
+		requireFalse(t, wasInCache)
+
+		wasInCache = c.Set("c", 3)
+		requireFalse(t, wasInCache)
+
+		c.Get("a")
+		c.Set("b", 22)
+		c.Get("c")
+
+		wasInCache = c.Set("d", 4)
+		requireFalse(t, wasInCache)
+
+		val, ok := c.Get("a")
+		requireFalse(t, ok)
+		requireNil(t, val)
+
+		val, ok = c.Get("b")
+		requireTrue(t, ok)
+		requireEqual(t, 22, val)
+
+		val, ok = c.Get("c")
+		requireTrue(t, ok)
+		requireEqual(t, 3, val)
+
+		val, ok = c.Get("d")
+		requireTrue(t, ok)
+		requireEqual(t, 4, val)
 	})
 }
 
-func TestCacheMultithreading(t *testing.T) {
-	t.Skip() // Remove me if task with asterisk completed.
-
+func TestCacheMultithreading(_ *testing.T) {
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
