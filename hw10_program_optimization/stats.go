@@ -1,13 +1,13 @@
 package hw10programoptimization
 
 import (
-	"github.com/valyala/fastjson"
-
 	"bufio"
 	"fmt"
 	"io"
 	"regexp"
 	"strings"
+
+	"github.com/valyala/fastjson" //nolint:depguard
 )
 
 type DomainStat map[string]int
@@ -34,20 +34,15 @@ func scanInputReader(r io.Reader, domainRegexp *regexp.Regexp) (DomainStat, erro
 		if email == "" {
 			return nil, fmt.Errorf("no email field in json")
 		}
-		err := countUserDomain(email, domainRegexp, stats)
-		if err != nil {
-			return nil, err
-		}
+		countUserDomain(email, domainRegexp, stats)
 	}
 	return stats, nil
 }
 
-func countUserDomain(email string, domainRegexp *regexp.Regexp, stat DomainStat) error {
+func countUserDomain(email string, domainRegexp *regexp.Regexp, stat DomainStat) {
 	matched := domainRegexp.Match([]byte(email))
 	if matched {
 		emailDomain := strings.ToLower(strings.SplitN(email, "@", 2)[1])
 		stat[emailDomain]++
 	}
-
-	return nil
 }
