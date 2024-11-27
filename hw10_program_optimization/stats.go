@@ -22,43 +22,43 @@ type User struct {
 type DomainStat map[string]int
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
+	stats, err := getUsers(r, domain)
 	if err != nil {
 		return nil, fmt.Errorf("get users error: %w", err)
 	}
-	return countDomains(u, domain)
+	return stats, nil
 }
 
-type users []User
-
-func getUsers(r io.Reader) (result users, err error) {
+func getUsers(r io.Reader, domain string) (DomainStat, error) {
 	scanner := bufio.NewScanner(r)
+	stats := make(DomainStat)
 
-	result = make(users, 0)
 	for scanner.Scan() {
 		line := scanner.Text()
 		var user User
-		if err = json.Unmarshal([]byte(line), &user); err != nil {
-			return
-		}
-		result = append(result, user)
-	}
-	return
-}
-
-func countDomains(u users, domain string) (DomainStat, error) {
-	result := make(DomainStat)
-
-	for _, user := range u {
-		matched, err := regexp.Match("\\."+domain, []byte(user.Email))
-		if err != nil {
+		if err := json.Unmarshal([]byte(line), &user); err != nil {
 			return nil, err
 		}
 
-		if matched {
-			emailDomain := strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])
-			result[emailDomain]++
+		err := countUserDomain(user, domain, stats)
+		if err != nil {
+			return nil, err
 		}
 	}
-	return result, nil
+	return stats, nil
+}
+
+func countUserDomain(u User, domain string, stat DomainStat) error {
+
+	matched, err := regexp.Match("\\."+domain, []byte(u.Email))
+	if err != nil {
+		return nil
+	}
+
+	if matched {
+		emailDomain := strings.ToLower(strings.SplitN(u.Email, "@", 2)[1])
+		stat[emailDomain]++
+	}
+
+	return nil
 }
