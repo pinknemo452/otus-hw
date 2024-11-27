@@ -1,3 +1,4 @@
+//go:build !bench
 // +build !bench
 
 package hw10programoptimization
@@ -16,6 +17,8 @@ func TestGetDomainStat(t *testing.T) {
 {"Id":4,"Name":"Gregory Reid","Username":"tButler","Email":"5Moore@Teklist.net","Phone":"520-04-16","Password":"r639qLNu","Address":"Sunfield Park 20"}
 {"Id":5,"Name":"Janice Rose","Username":"KeithHart","Email":"nulla@Linktype.com","Phone":"146-91-01","Password":"acSBF5","Address":"Russell Trail 61"}`
 
+	noEmailData := `{"Id":5,"Name":"Janice Rose","Username":"KeithHart","Phone":"146-91-01","Password":"acSBF5","Address":"Russell Trail 61"}`
+	notJson := `Lorem ipsum`
 	t.Run("find 'com'", func(t *testing.T) {
 		result, err := GetDomainStat(bytes.NewBufferString(data), "com")
 		require.NoError(t, err)
@@ -35,5 +38,15 @@ func TestGetDomainStat(t *testing.T) {
 		result, err := GetDomainStat(bytes.NewBufferString(data), "unknown")
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
+	})
+
+	t.Run("test no email", func(t *testing.T) {
+		_, err := GetDomainStat(bytes.NewBufferString(noEmailData), "email")
+		require.Error(t, err)
+	})
+
+	t.Run("test not json", func(t *testing.T) {
+		_, err := GetDomainStat(bytes.NewBufferString(notJson), "com")
+		require.Error(t, err)
 	})
 }
