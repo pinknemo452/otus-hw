@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"io"
+	"log"
 	"net"
 	"sync"
 	"time"
@@ -49,17 +49,16 @@ func (tc *Client) Connect() error {
 }
 
 func (tc *Client) Send() error {
-	reader := bufio.NewReader(tc.in)
-	readed, err := reader.ReadString('\n')
+	readed, err := io.ReadAll(tc.in)
 	if err != nil {
 		return err
 	}
-	// log.Printf("send: readed %d bytes", len(readed))
+	log.Printf("send: readed %d bytes", len(readed))
 	writen, err := tc.conn.Write([]byte(readed))
 	if err != nil {
 		return err
 	}
-	// log.Printf("send: written %d bytes", writen)
+	log.Printf("send: written %d bytes", writen)
 	if len(readed) != writen {
 		return errors.New("failed to send whole message")
 	}
@@ -72,13 +71,13 @@ func (tc *Client) Receive() error {
 	if err != nil {
 		return err
 	}
-	// log.Printf("receive: read %d bytes", readed)
+	log.Printf("receive: read %d bytes", readed)
 	buf = buf[:readed]
 	written, err := tc.out.Write(buf)
 	if err != nil {
 		return err
 	}
-	// log.Printf("receive: written %d bytes", written)
+	log.Printf("receive: written %d bytes", written)
 	if readed != written {
 		return errors.New("failed to read whole message")
 	}

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -21,7 +24,8 @@ func main() {
 
 	addr := net.JoinHostPort(host, port)
 
-	client := NewTelnetClient(addr, *timeout, os.Stdin, os.Stdout)
+	buf := bytes.Buffer{}
+	client := NewTelnetClient(addr, *timeout, io.NopCloser(&buf), os.Stdout)
 
 	err := client.Connect()
 	if err != nil {
@@ -31,14 +35,20 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	go func() {
-		for {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			buf.WriteString(scanner.Text() + "\n")
 			err := client.Send()
-			if errors.Is(err, io.EOF) {
-				println("...EOF")
-				client.Close()
-				os.Exit(0)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to send: %v", err)
 			}
 		}
+		if errors.Is(scanner.Err(), io.EOF) {
+			println("...EOF")
+			client.Close()
+			os.Exit(0)
+		}
+
 	}()
 	go func() {
 		for {
@@ -54,6 +64,4 @@ func main() {
 	<-ctx.Done()
 	client.Close()
 	stop()
-	// Place your code here,
-	// P.S. Do not rush to throw context down, think think if it is useful with blocking operation?
 }
