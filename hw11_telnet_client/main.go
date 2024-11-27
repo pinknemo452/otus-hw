@@ -48,7 +48,6 @@ func main() {
 			client.Close()
 			os.Exit(0)
 		}
-
 	}()
 	go func() {
 		for {

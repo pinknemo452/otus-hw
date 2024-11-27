@@ -25,7 +25,6 @@ type Client struct {
 }
 
 func NewTelnetClient(address string, timeout time.Duration, in io.ReadCloser, out io.Writer) TelnetClient {
-
 	return &Client{
 		addr:    address,
 		timeout: timeout,
@@ -54,12 +53,12 @@ func (tc *Client) Send() error {
 		return err
 	}
 	log.Printf("send: readed %d bytes", len(readed))
-	writen, err := tc.conn.Write([]byte(readed))
+	written, err := tc.conn.Write(readed)
 	if err != nil {
 		return err
 	}
-	log.Printf("send: written %d bytes", writen)
-	if len(readed) != writen {
+	log.Printf("send: written %d bytes", written)
+	if len(readed) != written {
 		return errors.New("failed to send whole message")
 	}
 	return nil
@@ -89,7 +88,6 @@ func (tc *Client) Close() error {
 	defer tc.Unlock()
 
 	return tc.conn.Close()
-
 }
 
 // Place your code here.
