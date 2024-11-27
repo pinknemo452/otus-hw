@@ -58,9 +58,8 @@ func countDomains(u users, domain string) (DomainStat, error) {
 		}
 
 		if matched {
-			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
-			num++
-			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
+			emailDomain := strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])
+			result[emailDomain]++
 		}
 	}
 	return result, nil
