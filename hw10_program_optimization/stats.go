@@ -1,8 +1,9 @@
 package hw10programoptimization
 
 import (
+	"github.com/valyala/fastjson"
+
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
@@ -35,12 +36,8 @@ func getUsers(r io.Reader, domain string) (DomainStat, error) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		var user User
-		if err := json.Unmarshal([]byte(line), &user); err != nil {
-			return nil, err
-		}
 
-		err := countUserDomain(user, domain, stats)
+		err := countUserDomain(fastjson.GetString([]byte(line), "Email"), domain, stats)
 		if err != nil {
 			return nil, err
 		}
@@ -48,15 +45,15 @@ func getUsers(r io.Reader, domain string) (DomainStat, error) {
 	return stats, nil
 }
 
-func countUserDomain(u User, domain string, stat DomainStat) error {
+func countUserDomain(email string, domain string, stat DomainStat) error {
 
-	matched, err := regexp.Match("\\."+domain, []byte(u.Email))
+	matched, err := regexp.Match("\\."+domain, []byte(email))
 	if err != nil {
 		return nil
 	}
 
 	if matched {
-		emailDomain := strings.ToLower(strings.SplitN(u.Email, "@", 2)[1])
+		emailDomain := strings.ToLower(strings.SplitN(email, "@", 2)[1])
 		stat[emailDomain]++
 	}
 
