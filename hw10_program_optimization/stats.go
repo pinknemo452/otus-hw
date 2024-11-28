@@ -1,66 +1,48 @@
 package hw10programoptimization
 
 import (
-	"encoding/json"
+	"bufio"
 	"fmt"
 	"io"
 	"regexp"
 	"strings"
-)
 
-type User struct {
-	ID       int
-	Name     string
-	Username string
-	Email    string
-	Phone    string
-	Password string
-	Address  string
-}
+	"github.com/valyala/fastjson" //nolint:depguard
+)
 
 type DomainStat map[string]int
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
+	domainRegexp, err := regexp.Compile("\\." + domain)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := scanInputReader(r, domainRegexp)
 	if err != nil {
 		return nil, fmt.Errorf("get users error: %w", err)
 	}
-	return countDomains(u, domain)
+	return stats, nil
 }
 
-type users [100_000]User
+func scanInputReader(r io.Reader, domainRegexp *regexp.Regexp) (DomainStat, error) {
+	scanner := bufio.NewScanner(r)
+	stats := make(DomainStat)
 
-func getUsers(r io.Reader) (result users, err error) {
-	content, err := io.ReadAll(r)
-	if err != nil {
-		return
-	}
-
-	lines := strings.Split(string(content), "\n")
-	for i, line := range lines {
-		var user User
-		if err = json.Unmarshal([]byte(line), &user); err != nil {
-			return
+	for scanner.Scan() {
+		line := scanner.Text()
+		email := fastjson.GetString([]byte(line), "Email")
+		if email == "" {
+			return nil, fmt.Errorf("no email field in json")
 		}
-		result[i] = user
+		countUserDomain(email, domainRegexp, stats)
 	}
-	return
+	return stats, nil
 }
 
-func countDomains(u users, domain string) (DomainStat, error) {
-	result := make(DomainStat)
-
-	for _, user := range u {
-		matched, err := regexp.Match("\\."+domain, []byte(user.Email))
-		if err != nil {
-			return nil, err
-		}
-
-		if matched {
-			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
-			num++
-			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
-		}
+func countUserDomain(email string, domainRegexp *regexp.Regexp, stat DomainStat) {
+	matched := domainRegexp.Match([]byte(email))
+	if matched {
+		emailDomain := strings.ToLower(strings.SplitN(email, "@", 2)[1])
+		stat[emailDomain]++
 	}
-	return result, nil
 }
